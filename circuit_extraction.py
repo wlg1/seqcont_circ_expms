@@ -1,5 +1,3 @@
-#https://github.com/callummcdougall/ARENA_2.0/tree/main/chapter1_transformers/exercises/part3_indirect_object_identification
-
 from dataset import Dataset
 from transformer_lens import HookedTransformer, utils
 from transformer_lens.hook_points import HookPoint
@@ -9,28 +7,6 @@ import torch as t
 from torch import Tensor
 from typing import Dict, Tuple, List
 from jaxtyping import Float, Bool
-
-lst = [(layer, head) for layer in range(12) for head in range(12)]
-CIRCUIT = {
-    "number mover": lst,
-    # "number mover 4": lst,
-    "number mover 3": lst,
-    "number mover 2": lst,
-    "number mover 1": lst,
-}
-
-SEQ_POS_TO_KEEP = {
-    "number mover": "end",
-    # "number mover 4": "S4",
-    "number mover 3": "S3",
-    "number mover 2": "S2",
-    "number mover 1": "S1",
-}
-
-# # Simple test: do the indices for head 9.9 (which is a name mover head) match the positions of the "end" tokens?
-
-# heads_circuit = get_heads_circuit(ioi_dataset)
-# assert (heads_circuit[(9, 9)] == ioi_dataset.word_idx["end"]).all()
 
 
 def get_heads_and_posns_to_keep(
@@ -64,24 +40,6 @@ def get_heads_and_posns_to_keep(
     return heads_and_posns_to_keep
 
 
-# # Simple test: check the correct mask is produced when the heads circuit is "just keep layer 0, head 0, sequence position 0"
-
-# heads_circuit_test = {(0, 0): t.full(size=(len(ioi_dataset),), fill_value=0)}
-# heads_and_posns_to_keep = get_heads_and_posns_to_keep(heads_circuit_test, ioi_dataset, model)
-
-# # Check all masks for layers after the first one are zero
-# for layer in range(1, model.cfg.n_layers):
-#     assert (heads_and_posns_to_keep[layer] == False).all()
-
-# # Check mask for first layer is one at sequence position 0 for head 0, and zero everywhere else
-# layer0_mask = heads_and_posns_to_keep[0]
-# assert layer0_mask.shape == (len(ioi_dataset), ioi_dataset.max_len, model.cfg.n_heads)
-# assert (layer0_mask[:, 1:, :] == False).all()
-# assert (layer0_mask[:, 0, 1:] == False).all()
-# assert (layer0_mask[:, 0, 0] == True).all()
-
-
-
 def hook_fn_mask_z(
     z: Float[Tensor, "batch seq head d_head"],
     hook: HookPoint,
@@ -106,7 +64,6 @@ def hook_fn_mask_z(
     z = t.where(mask_for_this_layer, z, means[hook.layer()])
 
     return z
-
 
 
 def compute_means_by_template(
@@ -144,8 +101,8 @@ def compute_means_by_template(
 def add_mean_ablation_hook(
     model: HookedTransformer, 
     means_dataset: Dataset, 
-    circuit: Dict[str, List[Tuple[int, int]]] = CIRCUIT,
-    seq_pos_to_keep: Dict[str, str] = SEQ_POS_TO_KEEP,
+    circuit: Dict[str, List[Tuple[int, int]]],
+    seq_pos_to_keep: Dict[str, str],
     is_permanent: bool = True,
 ) -> HookedTransformer:
     '''
