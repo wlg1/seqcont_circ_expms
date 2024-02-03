@@ -148,23 +148,22 @@ def add_mean_ablation_hook(
 
     return model
 
-def mean_ablate_by_lst(
-        lst, model, dataset: Dataset, dataset_2: Dataset, orig_score: float, 
-        CIRCUIT: Dict[str, List[Tuple[int, int]]], SEQ_POS_TO_KEEP: Dict[str, str], print_output=True):
+def mean_ablate_by_lst(lst, model, dataset, dataset_2, orig_score, print_output=True):
+    CIRCUIT = {}
+    SEQ_POS_TO_KEEP = {}
+    for i in range(len(model.tokenizer.tokenize(dataset_2.prompts[0]['text']))):
+        CIRCUIT['S'+str(i)] = lst
+        if i == len(model.tokenizer.tokenize(dataset_2.prompts[0]['text'])) - 1:
+            SEQ_POS_TO_KEEP['S'+str(i)] = 'end'
+        else:
+            SEQ_POS_TO_KEEP['S'+str(i)] = 'S'+str(i)
 
     model.reset_hooks(including_permanent=True)  #must do this after running with mean ablation hook
-
-    # ioi_logits_original, ioi_cache = model.run_with_cache(dataset.toks)
 
     model = add_mean_ablation_hook(model, means_dataset=dataset_2, circuit=CIRCUIT, seq_pos_to_keep=SEQ_POS_TO_KEEP)
     ioi_logits_minimal = model(dataset.toks)
 
-    # orig_score = logits_to_ave_logit_diff(ioi_logits_original, dataset)
     new_score = logits_to_ave_logit_diff(ioi_logits_minimal, dataset)
     if print_output:
-        # print(f"Average logit difference (IOI dataset, using entire model): {orig_score:.4f}")
-        # print(f"Average logit difference (IOI dataset, only using circuit): {new_score:.4f}")
         print(f"Average logit difference (circuit / full) %: {100 * new_score / orig_score:.4f}")
-    # return new_score
     return 100 * new_score / orig_score
-
