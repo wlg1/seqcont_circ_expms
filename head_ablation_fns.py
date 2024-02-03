@@ -8,6 +8,8 @@ from torch import Tensor
 from typing import Dict, Tuple, List
 from jaxtyping import Float, Bool
 
+from metrics import logits_to_ave_logit_diff
+
 # class ModelScores:
 #     def __init__(self, model, dataset):
 #         self.model = model
@@ -111,8 +113,8 @@ def hook_fn_mask_z(
 def add_mean_ablation_hook(
     model: HookedTransformer,
     means_dataset: Dataset,
-    circuit: Dict[str, List[Tuple[int, int]]] = CIRCUIT,
-    seq_pos_to_keep: Dict[str, str] = SEQ_POS_TO_KEEP,
+    circuit: Dict[str, List[Tuple[int, int]]],
+    seq_pos_to_keep: Dict[str, str],
     is_permanent: bool = True,
 ) -> HookedTransformer:
     '''
@@ -154,7 +156,7 @@ def mean_ablate_by_lst(
 
     # ioi_logits_original, ioi_cache = model.run_with_cache(dataset.toks)
 
-    model = circuit_extraction.add_mean_ablation_hook(model, means_dataset=dataset_2, circuit=CIRCUIT, seq_pos_to_keep=SEQ_POS_TO_KEEP)
+    model = add_mean_ablation_hook(model, means_dataset=dataset_2, circuit=CIRCUIT, seq_pos_to_keep=SEQ_POS_TO_KEEP)
     ioi_logits_minimal = model(dataset.toks)
 
     # orig_score = logits_to_ave_logit_diff(ioi_logits_original, dataset)
