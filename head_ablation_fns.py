@@ -8,7 +8,7 @@ from torch import Tensor
 from typing import Dict, Tuple, List
 from jaxtyping import Float, Bool
 
-from metrics import logits_to_ave_logit_diff
+from metrics import *
 
 # class ModelScores:
 #     def __init__(self, model, dataset):
@@ -83,7 +83,7 @@ def get_heads_and_posns_to_keep(
 
     return heads_and_posns_to_keep
 
-def hook_fn_mask_z(
+def hook_func_mask_head(
     z: Float[Tensor, "batch seq head d_head"],
     hook: HookPoint,
     heads_and_posns_to_keep: Dict[int, Bool[Tensor, "batch seq head"]],
@@ -100,17 +100,14 @@ def hook_fn_mask_z(
         Tensor of mean z values of the means_dataset over each group of prompts
         with the same template. This tells us what values to mask with.
     '''
-    # Get the mask for this layer, and add d_head=1 dimension so it broadcasts correctly
     mask_for_this_layer = heads_and_posns_to_keep[hook.layer()].unsqueeze(-1).to(z.device)
-
-    # Set z values to the mean
     z = t.where(mask_for_this_layer, z, means[hook.layer()])
 
     return z
 
 
 
-def add_mean_ablation_hook(
+def add_ablation_hook(
     model: HookedTransformer,
     means_dataset: Dataset,
     circuit: Dict[str, List[Tuple[int, int]]],
@@ -121,8 +118,7 @@ def add_mean_ablation_hook(
     Adds a permanent hook to the model, which ablates according to the circuit and
     seq_pos_to_keep dictionaries.
 
-    In other words, when the model is run on ioi_dataset, every head's output will
-    be replaced with the mean over means_dataset for sequences with the same template,
+    Every head's output will be replaced with the mean over means_dataset,
     except for a subset of heads and sequence positions as specified by the circuit
     and seq_pos_to_keep dicts.
     '''
@@ -138,17 +134,15 @@ def add_mean_ablation_hook(
     # Get a hook function which will patch in the mean z values for each head, at
     # all positions which aren't important for the circuit
     hook_fn = partial(
-        hook_fn_mask_z,
+        hook_func_mask_head,
         heads_and_posns_to_keep=heads_and_posns_to_keep,
         means=means
     )
 
-    # Apply hook
     model.add_hook(lambda name: name.endswith("z"), hook_fn, is_permanent=is_permanent)
-
     return model
 
-def mean_ablate_by_lst(lst, model, dataset, dataset_2, orig_score, print_output=True):
+def ablate_head_from_full(lst, model, dataset, dataset_2, orig_score, print_output=True):
     CIRCUIT = {}
     SEQ_POS_TO_KEEP = {}
     for i in range(len(model.tokenizer.tokenize(dataset_2.prompts[0]['text']))):
@@ -160,10 +154,10 @@ def mean_ablate_by_lst(lst, model, dataset, dataset_2, orig_score, print_output=
 
     model.reset_hooks(including_permanent=True)  #must do this after running with mean ablation hook
 
-    model = add_mean_ablation_hook(model, means_dataset=dataset_2, circuit=CIRCUIT, seq_pos_to_keep=SEQ_POS_TO_KEEP)
+    model = add_ablation_hook(model, means_dataset=dataset_2, circuit=CIRCUIT, seq_pos_to_keep=SEQ_POS_TO_KEEP)
     ioi_logits_minimal = model(dataset.toks)
 
-    new_score = logits_to_ave_logit_diff(ioi_logits_minimal, dataset)
+    new_score = get_logit_diff(ioi_logits_minimal, dataset)
     if print_output:
         print(f"Average logit difference (circuit / full) %: {100 * new_score / orig_score:.4f}")
     return 100 * new_score / orig_score

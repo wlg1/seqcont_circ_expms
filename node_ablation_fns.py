@@ -11,7 +11,7 @@ from jaxtyping import Float, Bool
 from head_ablation_fns import *
 from mlp_ablation_fns import *
 
-def add_mean_ablation_hook_MLP_head(
+def add_ablation_hook_MLP_head(
     model: HookedTransformer,
     means_dataset: Dataset,
     heads_lst, mlp_lst,
@@ -37,7 +37,7 @@ def add_mean_ablation_hook_MLP_head(
     # Get a hook function which will patch in the mean z values for each head, at
     # all positions which aren't important for the circuit
     hook_fn = partial(
-        hook_fn_mask_z,
+        hook_func_mask_head,
         heads_and_posns_to_keep=heads_and_posns_to_keep,
         means=means
     )
