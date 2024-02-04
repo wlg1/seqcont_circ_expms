@@ -21,7 +21,7 @@ from metrics import *
 
 # may add fns below as methods to this class if deemed neater due to those fns being specific to (model, dataset)
 
-def compute_means_by_template(
+def get_heads_actv_mean(
     means_dataset: Dataset,
     model: HookedTransformer
 ) -> Float[Tensor, "layer batch seq head_idx d_head"]:
@@ -41,7 +41,6 @@ def compute_means_by_template(
     batch, seq_len = len(means_dataset), means_dataset.max_len
     means = t.zeros(size=(n_layers, batch, seq_len, n_heads, d_head), device=model.cfg.device)
 
-    # Get set of different templates for this data
     for layer in range(model.cfg.n_layers):
         z_for_this_layer: Float[Tensor, "batch seq head d_head"] = means_cache[utils.get_act_name("z", layer)]
         for template_group in means_dataset.groups:
@@ -53,7 +52,7 @@ def compute_means_by_template(
 
     return means
 
-def get_heads_and_posns_to_keep(
+def mask_circ_heads(
     means_dataset: Dataset,
     model: HookedTransformer,
     circuit: Dict[str, List[Tuple[int, int]]],
@@ -105,8 +104,6 @@ def hook_func_mask_head(
 
     return z
 
-
-
 def add_ablation_hook(
     model: HookedTransformer,
     means_dataset: Dataset,
@@ -126,10 +123,10 @@ def add_ablation_hook(
     model.reset_hooks(including_permanent=True)
 
     # Compute the mean of each head's output on the ABC dataset, grouped by template
-    means = compute_means_by_template(means_dataset, model)
+    means = get_heads_actv_mean(means_dataset, model)
 
     # Convert this into a boolean map
-    heads_and_posns_to_keep = get_heads_and_posns_to_keep(means_dataset, model, circuit, seq_pos_to_keep)
+    heads_and_posns_to_keep = mask_circ_heads(means_dataset, model, circuit, seq_pos_to_keep)
 
     # Get a hook function which will patch in the mean z values for each head, at
     # all positions which aren't important for the circuit

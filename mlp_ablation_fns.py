@@ -13,15 +13,16 @@ from metrics import *
 """
 see this in Outline of explorer
 
-compute_means_by_template_MLP
-get_mlp_outputs_and_posns_to_keep
-hook_fn_mask_mlp_out
-add_mean_ablation_hook_MLP
-mean_ablate_by_lst_MLP
+get_MLPs_actv_mean
+mask_circ_MLPs
+hook_func_mask_mlp_out
+add_ablation_hook_MLP
+
+ablate_MLP_from_full
 """
 
 
-def compute_means_by_template_MLP(
+def get_MLPs_actv_mean(
     means_dataset: Dataset,
     model: HookedTransformer
 ) -> Float[Tensor, "layer batch seq head_idx d_head"]:
@@ -56,7 +57,7 @@ def compute_means_by_template_MLP(
 
     return means
 
-def get_mlp_outputs_and_posns_to_keep(
+def mask_circ_MLPs(
     means_dataset: Dataset,
     model: HookedTransformer,
     circuit: Dict[str, List[int]],  # Adjusted to hold list of layers instead of (layer, head) tuples
@@ -84,7 +85,7 @@ def get_mlp_outputs_and_posns_to_keep(
 
     return mlp_outputs_and_posns_to_keep
 
-def hook_fn_mask_mlp_out(
+def hook_func_mask_mlp_out(
     mlp_out: Float[Tensor, "batch seq d_mlp"],
     hook: HookPoint,
     mlp_outputs_and_posns_to_keep: Dict[int, Bool[Tensor, "batch seq"]],
@@ -110,7 +111,7 @@ def hook_fn_mask_mlp_out(
     return mlp_out
 
 
-def add_mean_ablation_hook_MLP(
+def add_ablation_hook_MLP(
     model: HookedTransformer,
     means_dataset: Dataset,
     circuit: Dict[str, List[Tuple[int, int]]],
@@ -130,15 +131,15 @@ def add_mean_ablation_hook_MLP(
     model.reset_hooks(including_permanent=True)
 
     # Compute the mean of each head's output on the ABC dataset, grouped by template
-    means = compute_means_by_template_MLP(means_dataset, model)
+    means = get_MLPs_actv_mean(means_dataset, model)
 
     # Convert this into a boolean map
-    mlp_outputs_and_posns_to_keep = get_mlp_outputs_and_posns_to_keep(means_dataset, model, circuit, seq_pos_to_keep)
+    mlp_outputs_and_posns_to_keep = mask_circ_MLPs(means_dataset, model, circuit, seq_pos_to_keep)
 
     # Get a hook function which will patch in the mean z values for each head, at
     # all positions which aren't important for the circuit
     hook_fn = partial(
-        hook_fn_mask_mlp_out,
+        hook_func_mask_mlp_out,
         mlp_outputs_and_posns_to_keep=mlp_outputs_and_posns_to_keep,
         means=means
     )
@@ -160,17 +161,11 @@ def ablate_MLP_from_full(lst, model, dataset, dataset_2, orig_score, print_outpu
 
     model.reset_hooks(including_permanent=True)  #must do this after running with mean ablation hook
 
-    # ioi_logits_original, ioi_cache = model.run_with_cache(dataset.toks)
-
-    model = add_mean_ablation_hook_MLP(model, means_dataset=dataset_2, circuit=CIRCUIT, seq_pos_to_keep=SEQ_POS_TO_KEEP)
+    model = add_ablation_hook_MLP(model, means_dataset=dataset_2, circuit=CIRCUIT, seq_pos_to_keep=SEQ_POS_TO_KEEP)
     new_logits = model(dataset.toks)
 
-    # orig_score = logits_to_ave_logit_diff_2(ioi_logits_original, dataset)
     new_score = get_logit_diff(new_logits, dataset)
     del(new_logits)
     if print_output:
-        # print(f"Average logit difference (IOI dataset, using entire model): {orig_score:.4f}")
-        # print(f"Average logit difference (IOI dataset, only using circuit): {new_score:.4f}")
         print(f"Average logit difference (circuit / full) %: {100 * new_score / orig_score:.4f}")
-    # return new_score
     return 100 * new_score / orig_score
