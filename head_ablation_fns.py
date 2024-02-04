@@ -89,7 +89,7 @@ def hook_func_mask_head(
 
     return z
 
-def add_ablation_hook(
+def add_ablation_hook_head(
     model: HookedTransformer,
     means_dataset: Dataset,
     circuit: Dict[str, List[Tuple[int, int]]],
@@ -102,11 +102,11 @@ def add_ablation_hook(
 
     model.reset_hooks(including_permanent=True)
     means = get_heads_actv_mean(means_dataset, model)
-    heads_and_posns_to_keep = mask_circ_heads(means_dataset, model, circuit, seq_pos_to_keep)
+    components_to_keep = mask_circ_heads(means_dataset, model, circuit, seq_pos_to_keep)
 
     hook_fn = partial(
         hook_func_mask_head,
-        heads_and_posns_to_keep=heads_and_posns_to_keep,
+        components_to_keep=components_to_keep,
         means=means
     )
 
@@ -132,7 +132,7 @@ def ablate_head_from_full(
 
     model.reset_hooks(including_permanent=True)  #must do this after running with mean ablation hook
 
-    model = add_ablation_hook(model, means_dataset=dataset_2, circuit=CIRCUIT, seq_pos_to_keep=SEQ_POS_TO_KEEP)
+    model = add_ablation_hook_head(model, means_dataset=dataset_2, circuit=CIRCUIT, seq_pos_to_keep=SEQ_POS_TO_KEEP)
     ioi_logits_minimal = model(dataset.toks)
 
     new_score = get_logit_diff(ioi_logits_minimal, dataset)

@@ -32,13 +32,13 @@ def add_ablation_hook_MLP_head(
     means = get_heads_actv_mean(means_dataset, model)
 
     # Convert this into a boolean map
-    heads_and_posns_to_keep = mask_circ_heads(means_dataset, model, CIRCUIT, SEQ_POS_TO_KEEP)
+    components_to_keep = mask_circ_heads(means_dataset, model, CIRCUIT, SEQ_POS_TO_KEEP)
 
     # Get a hook function which will patch in the mean z values for each head, at
     # all positions which aren't important for the circuit
     hook_fn = partial(
         hook_func_mask_head,
-        heads_and_posns_to_keep=heads_and_posns_to_keep,
+        components_to_keep=components_to_keep,
         means=means
     )
 
@@ -59,13 +59,13 @@ def add_ablation_hook_MLP_head(
     means = get_MLPs_actv_mean(means_dataset, model)
 
     # Convert this into a boolean map
-    mlp_outputs_and_posns_to_keep = mask_circ_MLPs(means_dataset, model, CIRCUIT, SEQ_POS_TO_KEEP)
+    components_to_keep = mask_circ_MLPs(means_dataset, model, CIRCUIT, SEQ_POS_TO_KEEP)
 
     # Get a hook function which will patch in the mean z values for each head, at
     # all positions which aren't important for the circuit
     hook_fn = partial(
         hook_func_mask_mlp_out,
-        mlp_outputs_and_posns_to_keep=mlp_outputs_and_posns_to_keep,
+        components_to_keep=components_to_keep,
         means=means
     )
 

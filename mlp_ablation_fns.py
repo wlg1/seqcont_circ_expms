@@ -105,11 +105,11 @@ def add_ablation_hook_MLP(
 
     model.reset_hooks(including_permanent=True)
     means = get_MLPs_actv_mean(means_dataset, model)
-    mlp_outputs_and_posns_to_keep = mask_circ_MLPs(means_dataset, model, circuit, seq_pos_to_keep)
+    components_to_keep = mask_circ_MLPs(means_dataset, model, circuit, seq_pos_to_keep)
 
     hook_fn = partial(
         hook_func_mask_mlp_out,
-        mlp_outputs_and_posns_to_keep=mlp_outputs_and_posns_to_keep,
+        components_to_keep=components_to_keep,
         means=means
     )
 
