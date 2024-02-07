@@ -12,10 +12,14 @@ import argparse
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="gp")
+    parser.add_argument("--model", type=str, default="gpt2-small")
+    parser.add_argument("--task", type=str, default="numerals")
+    parser.add_argument("--num_samps", type=int, default=512)
 
     args = parser.parse_args()
     model_name = args.model
+    task = args.task  # choose: numerals, numwords, months
+    num_samps_per_ptype = args.num_samps #768 512
 
     ### Load Model ###
     model = HookedTransformer.from_pretrained(
@@ -27,9 +31,7 @@ if __name__ == "__main__":
     )
 
     ### Load Datasets ###
-    task = "numerals"  # choose: numerals, numwords, months
     prompt_types = ['done', 'lost', 'names']
-    num_samps_per_ptype = 512 #768 512
 
     save_files = True
     run_on_other_tasks = True
