@@ -58,29 +58,34 @@ torch.set_grad_enabled(False)
 
 """## Load Model"""
 
-model = HookedTransformer.from_pretrained(
-    model_name,
-    center_unembed=True,
-    center_writing_weights=True,
-    fold_ln=True,
-    refactor_factored_attn_matrices=True,
-)
+# model = HookedTransformer.from_pretrained(
+#     model_name,
+#     center_unembed=True,
+#     center_writing_weights=True,
+#     fold_ln=True,
+#     refactor_factored_attn_matrices=True,
+# )
 
 """## Import functions from repo"""
+
+# Commented out IPython magic to ensure Python compatibility.
+# %cd ..
+!rm -rf seqcont_circ_expms
 
 !git clone https://github.com/wlg1/seqcont_circ_expms.git
 
 # Commented out IPython magic to ensure Python compatibility.
 # %cd /content/seqcont_circ_expms
 
-from dataset import Dataset
-from generate_data import *
-from metrics import *
-from head_ablation_fns import *
-from mlp_ablation_fns import *
-from node_ablation_fns import *
-from loop_node_ablation_fns import *
+# from dataset import Dataset
+# from generate_data import *
+# from metrics import *
+# from head_ablation_fns import *
+# from mlp_ablation_fns import *
+# from node_ablation_fns import *
+# from loop_node_ablation_fns import *
 
 """# Run script"""
 
-!python run_node_ablation.py --model "gpt2-small"
+!python run_node_ablation.py --model "gpt2-small" --task "numerals" --num_samps 300
+
