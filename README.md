@@ -13,8 +13,6 @@ This repository hosts the code and resources used in our research on interpretin
 - **Towards Robust, Aligned, and Interpretable Language Models**: Our findings contribute to the broader goal of creating language models that are not only powerful but also robust, aligned with human values, and interpretable.
 
 
-
-
 #### To get started with our project, follow these steps:
 
 Clone the Repository: 
@@ -29,6 +27,13 @@ Explore the Notebooks:
 
 Navigate to the ``notebooks`` directory and open the Jupyter notebooks to see detailed analyses and visualizations.
 
+#### Running Experiments
+
+Use this command to run node ablation experiments. Lower `--num_samps` if the GPU out-of-memory issues.
+
+```bash
+python run_node_ablation.py --model "gpt2-small" --task "numerals" --num_samps 300 --threshold 20 --one_iter
+```
 
 #### Citation
 If you find our work useful, please consider citing our paper:

@@ -2,7 +2,7 @@
 Runs iterative node ablation and saves circuit components to json
 
 Usage:
-
+python run_node_ablation.py --model "gpt2-small" --task "numerals" --num_samps 300 --threshold 20 --one_iter
 """
 import os
 import pickle
