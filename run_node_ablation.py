@@ -1,6 +1,6 @@
 
 from dataset import Dataset
-from generate_data import *
+# from generate_data import *
 from metrics import *
 from head_ablation_fns import *
 from mlp_ablation_fns import *
@@ -60,3 +60,31 @@ if __name__ == "__main__":
     ioi_logits_original = model(dataset.toks)
     orig_score = get_logit_diff(ioi_logits_original, dataset)
     print(orig_score)
+
+    ##############
+    ### Node Ablation Iteration ###
+
+    # threshold = 20
+    # curr_circ_heads = []
+    # curr_circ_mlps = []
+    # prev_score = 100
+    # new_score = 0
+    # iter = 1
+    # all_comp_scores = []
+    # while prev_score != new_score:
+    #     print('\nbackw prune, iter ', str(iter))
+    #     old_circ_heads = curr_circ_heads.copy() # save old before finding new one
+    #     old_circ_mlps = curr_circ_mlps.copy()
+    #     curr_circ_heads, curr_circ_mlps, new_score, comp_scores = find_circuit_backw(model, dataset, dataset_2, curr_circ_heads, curr_circ_mlps, orig_score, threshold)
+    #     if old_circ_heads == curr_circ_heads and old_circ_mlps == curr_circ_mlps:
+    #         break
+    #     all_comp_scores.append(comp_scores)
+    #     print('\nfwd prune, iter ', str(iter))
+    #     # track changes in circuit as for some reason it doesn't work with scores
+    #     old_circ_heads = curr_circ_heads.copy()
+    #     old_circ_mlps = curr_circ_mlps.copy()
+    #     curr_circ_heads, curr_circ_mlps, new_score, comp_scores = find_circuit_forw(model, dataset, dataset_2, curr_circ_heads, curr_circ_mlps, orig_score, threshold)
+    #     if old_circ_heads == curr_circ_heads and old_circ_mlps == curr_circ_mlps:
+    #         break
+    #     all_comp_scores.append(comp_scores)
+    #     iter += 1
