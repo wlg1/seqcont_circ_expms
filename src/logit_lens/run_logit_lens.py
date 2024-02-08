@@ -70,8 +70,12 @@ if __name__ == "__main__":
         Use `try` because when indexing, the output may not be a seq member of the right type!
         """
         try:
-            a = num_words.index(tok_logit_lens[9][0].replace(' ', ''))
-            b= num_words.index(tok_logit_lens[10][0].replace(' ', ''))
+            if task == "numerals":
+                a = tok_logit_lens[9][0].replace(' ', '')
+                b= tok_logit_lens[10][0].replace(' ', '')
+            else:   
+                a = num_words.index(tok_logit_lens[9][0].replace(' ', ''))
+                b= num_words.index(tok_logit_lens[10][0].replace(' ', ''))
             if int(a) < int(b):
                 if tok_logit_lens[10][0] == pd['corr']:
                     num_corr += 1
