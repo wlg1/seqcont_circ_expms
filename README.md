@@ -25,7 +25,7 @@ Install Dependencies:
 
 Explore the Notebooks:
 
-Navigate to the ``notebooks`` directory and open the Jupyter notebooks to see detailed analyses and visualizations.
+Navigate to the ``notebooks`` directory and open the Colab notebooks to see detailed analyses and visualizations.
 
 #### Running Experiments
 

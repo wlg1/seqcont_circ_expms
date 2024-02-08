@@ -8,7 +8,7 @@ import os
 import pickle
 import json
 import argparse
-from transformer_lens import HookedTransformer, utils
+from transformer_lens import HookedTransformer
 
 from viz_attn_pat import *
 
