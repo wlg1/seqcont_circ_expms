@@ -1,4 +1,4 @@
-# Understanding Transformers through Circuit Analysis 
+# Understanding Sequence Continuation in Transformers through Circuit Analysis 
 ##### by Michael Lan and Fazl Barez
 
 ## Overview
@@ -23,13 +23,13 @@ Install Dependencies:
 
 `` pip install -r requirements.txt ``
 
-Explore the Notebooks:
+**Explore the Notebooks:**
 
 Navigate to the ``notebooks`` directory and open the Colab notebooks to see detailed analyses and visualizations.
 
 ### Running Experiments
 
-After navigating to the `src/node_ablation` folder, use this command to run node ablation experiments. Lower `--num_samps` if one encounters GPU out-of-memory issues. An A100 is recommended.
+After navigating to the `src/iter_node_pruning` folder, use this command to run node ablation experiments. Lower `--num_samps` if one encounters GPU out-of-memory issues. An A100 is recommended. Change the task and other input parameters to run a different experiment.
 
 ```bash
 python run_node_ablation.py --model "gpt2-small" --task "numerals" --num_samps 512 --threshold 20 --one_iter
@@ -52,8 +52,8 @@ python run_logit_lens.py --model "gpt2" --task "numerals" --num_samps 512
 If you find our work useful, please consider citing our paper:
 
 ```
-@misc{lan2024locating,
-      title={Locating Cross-Task Sequence Continuation Circuits in Transformers}, 
+@misc{lan2024interpreting,
+      title={Interpreting Shared Circuits for Ordered Sequence Prediction in a Large Language Model}, 
       author={Michael Lan and Fazl Barez},
       year={2024},
       eprint={2311.04131},
