@@ -7,7 +7,7 @@
 
 # # Change Inputs Here
 
-# In[ ]:
+# In[1]:
 
 
 task = "numerals"  # choose: numerals, numwords, months
@@ -22,13 +22,13 @@ run_on_other_tasks = True
 
 # # Setup
 
-# In[ ]:
+# In[2]:
 
 
 get_ipython().run_cell_magic('capture', '', '%pip install git+https://github.com/neelnanda-io/TransformerLens.git\n')
 
 
-# In[ ]:
+# In[3]:
 
 
 import torch
@@ -62,7 +62,7 @@ import matplotlib.pyplot as plt
 import statistics
 
 
-# In[ ]:
+# In[4]:
 
 
 import transformer_lens
@@ -76,7 +76,7 @@ from transformer_lens import HookedTransformer, HookedTransformerConfig, Factore
 
 # We turn automatic differentiation off, to save GPU memory, as this notebook focuses on model inference not model training.
 
-# In[ ]:
+# In[5]:
 
 
 torch.set_grad_enabled(False)
@@ -84,41 +84,29 @@ torch.set_grad_enabled(False)
 
 # # Load Model
 
-# In[ ]:
-
-
-# model = HookedTransformer.from_pretrained(
-#     model_name,
-#     center_unembed=True,
-#     center_writing_weights=True,
-#     fold_ln=True,
-#     refactor_factored_attn_matrices=True,
-# )
-
-
-# In[ ]:
+# In[6]:
 
 
 from transformers import LlamaForCausalLM, LlamaTokenizer
 
 
-# In[ ]:
+# In[7]:
 
 
 get_ipython().system('huggingface-cli login')
 
 
-# In[ ]:
+# In[8]:
 
 
 LLAMA_2_7B_CHAT_PATH = "meta-llama/Llama-2-7b-chat-hf"
 
-# tokenizer = LlamaTokenizer.from_pretrained(LLAMA_2_7B_CHAT_PATH)
-tokenizer = LlamaTokenizer.from_pretrained(LLAMA_2_7B_CHAT_PATH, use_fast= False, add_prefix_space= False)
+tokenizer = LlamaTokenizer.from_pretrained(LLAMA_2_7B_CHAT_PATH)
+# tokenizer = LlamaTokenizer.from_pretrained(LLAMA_2_7B_CHAT_PATH, use_fast= False, add_prefix_space= False)
 hf_model = LlamaForCausalLM.from_pretrained(LLAMA_2_7B_CHAT_PATH, low_cpu_mem_usage=True)
 
 
-# In[ ]:
+# In[9]:
 
 
 import transformer_lens.utils as utils
@@ -126,7 +114,7 @@ from transformer_lens.hook_points import HookPoint
 from transformer_lens import HookedTransformer
 
 
-# In[ ]:
+# In[10]:
 
 
 model = HookedTransformer.from_pretrained(
@@ -144,43 +132,16 @@ del hf_model
 model = model.to("cuda" if torch.cuda.is_available() else "cpu")
 
 
-# # Test prompts
-
-# In[ ]:
-
-
-# Get list of arguments to pass to `generate` (specifically these are the ones relating to sampling)
-generate_kwargs = dict(
-    do_sample = False, # deterministic output so we can compare it to the HF model
-    top_p = 1.0, # suppresses annoying output errors
-    temperature = 1.0, # suppresses annoying output errors
-)
-
-prompt =  "2 4 6"
-output = model.generate(prompt, max_new_tokens=5, **generate_kwargs)
-print(output)
-
-
-# Next char it generates is ' ', not '8', so put a space at end of your prompts
-
-# In[ ]:
-
-
-prompt =  "2 4 6 "
-output = model.generate(prompt, max_new_tokens=1, **generate_kwargs)
-print(output)
-
-
 # # Import functions from repo
 
-# In[ ]:
+# In[11]:
 
 
 get_ipython().system('git clone https://github.com/apartresearch/seqcont_circuits.git')
 get_ipython().run_line_magic('cd', '/content/seqcont_circuits/src/iter_node_pruning')
 
 
-# In[ ]:
+# In[12]:
 
 
 # from dataset import Dataset
@@ -191,7 +152,57 @@ from node_ablation_fns import *
 from loop_node_ablation_fns import *
 
 
-# # Functions
+# # test utils prompts
+
+# In[15]:
+
+
+example_prompt = "1 2"
+example_answer = " 4"
+utils.test_prompt(example_prompt, example_answer, model, prepend_bos=True)
+
+
+# In[14]:
+
+
+example_prompt = "1 2 3"
+example_answer = " 4"
+utils.test_prompt(example_prompt, example_answer, model, prepend_bos=True)
+
+
+# In[16]:
+
+
+example_prompt = "5 6 7"
+example_answer = " 8"
+utils.test_prompt(example_prompt, example_answer, model, prepend_bos=True)
+
+
+# In[17]:
+
+
+example_prompt = "3 5 7"
+example_answer = " 9"
+utils.test_prompt(example_prompt, example_answer, model, prepend_bos=True)
+
+
+# In[18]:
+
+
+example_prompt = "2 4 6"
+example_answer = " 8"
+utils.test_prompt(example_prompt, example_answer, model, prepend_bos=True)
+
+
+# In[19]:
+
+
+example_prompt = "200 300 400"
+example_answer = " 500"
+utils.test_prompt(example_prompt, example_answer, model, prepend_bos=True)
+
+
+# # Generate dataset with multiple prompts
 
 # In[ ]:
 
@@ -258,45 +269,35 @@ class Dataset:
         return self.N
 
 
-# # Load datasets
-
-# Because llama-2 tokenizer treats space as a token, remember to ablate even the spaces too, not just the numbers!
-
-# In[ ]:
+# In[21]:
 
 
-tokenizer.tokenize('2 4 6 ')
-
-
-# In[ ]:
-
-
-def generate_prompts():
+def generate_prompts_list(x ,y):
     prompts_list = []
-    prompt_dict = {
-        'corr': '8',
-        'incorr': '6',
-        'text': f"2 4 6 "
-    }
-    list_tokens = tokenizer.tokenize('2 4 6 ')
-    for i, tok_as_str in enumerate(list_tokens):
-        if tok_as_str == '▁':
-            prompt_dict['S'+str(i)] = ' '
-        else:
-            prompt_dict['S'+str(i)] = tok_as_str
-    # prompt_dict = {
-    #     'S1': '2',
-    #     'S2': '4',
-    #     'S3': '6',
-    #     'corr': '8',
-    #     'incorr': '6',
-    #     'text': f"2 4 6 "
-    # }
-    prompts_list.append(prompt_dict)
+    for i in range(x, y):
+        prompt_dict = {
+            'S1': str(i),
+            'S2': str(i+1),
+            'S3': str(i+2),
+            # # 'S4': str(i+3),
+            # 'corr': str(i+4),
+            # 'incorr': str(i+3),
+            # 'text': f"{i} {i+1} {i+2} {i+3}"
+            'corr': str(i+3),
+            'incorr': str(i+2),
+            'text': f"{i} {i+1} {i+2}"
+        }
+        prompts_list.append(prompt_dict)
     return prompts_list
 
-prompts_list = generate_prompts()
+prompts_list = generate_prompts_list(1, 9)
 prompts_list
+
+
+# In[ ]:
+
+
+dataset = Dataset(prompts_list, model.tokenizer)
 
 
 # In[ ]:
@@ -304,49 +305,31 @@ prompts_list
 
 import random
 
-def generate_prompts_list_corr():
-    prompts_list = []
-    r1 = random.randint(1, 9)
-    r2 = random.randint(1, 9)
-    r3 = random.randint(1, 9)
-    prompt_dict = {
-        'corr': '8',
-        'incorr': '6',
-        'text': f"{r1} {r2} {r3} "
-    }
-    list_tokens = tokenizer.tokenize(f"{r1} {r2} {r3} ")
-    for i, tok_as_str in enumerate(list_tokens):
-        if tok_as_str == '▁':
-            prompt_dict['S'+str(i)] = ' '
-        else:
-            prompt_dict['S'+str(i)] = tok_as_str
-    # prompt_dict = {
-    #     'S1': str(r1),
-    #     'S2': str(r2),
-    #     'S3': str(r3),
-    #     'corr': '8',
-    #     'incorr': '6',
-    #     'text': f"{r1} {r2} {r3} "
-    # }
-    prompts_list.append(prompt_dict)
-    return prompts_list
+def generate_prompts_list_corr(prompt_list):
+    outlist = []
+    for prompt_dict in prompts_list:
+        r1 = random.randint(1, 12)
+        r2 = random.randint(1, 12)
+        while True:
+            r3 = random.randint(1, 12)
+            r4 = random.randint(1, 12)
+            if r4 - 1 != r3:
+                break
+        new_text = prompt_dict['text'].replace(prompt_dict['S1'], str(r1)).replace(prompt_dict['S2'], str(r2)).replace(prompt_dict['S3'], str(r3)).replace(prompt_dict['S4'], str(r4))
+        new_prompt_dict = {
+            'S1': str(r1),
+            'S2': str(r2),
+            'S3': str(r3),
+            'S4': str(r4),
+            'corr': prompt_dict['corr'],
+            'incorr': prompt_dict['incorr'],
+            'text': new_text
+        }
+        outlist.append(new_prompt_dict)
+    return outlist
+prompts_list_2 = generate_prompts_list_corr(prompts_list)
 
-prompts_list_2 = generate_prompts_list_corr()
-prompts_list_2
-
-
-# In[ ]:
-
-
-dataset = Dataset(prompts_list, model.tokenizer)
-dataset.toks.shape
-
-
-# In[ ]:
-
-
-dataset_2 = Dataset(prompts_list_2, model.tokenizer) #, S1_is_first=True)
-dataset_2.toks.shape
+dataset_2 = Dataset(prompts_list_2, model.tokenizer)
 
 
 # # Get orig score
@@ -396,11 +379,11 @@ lst = [(layer, head) for layer in range(32) for head in range(0, 32)]
 CIRCUIT = {}
 SEQ_POS_TO_KEEP = {}
 
-list_tokens = tokenizer.tokenize('2 4 6 ')
+list_tokens = tokenizer.tokenize('1 2 3 4')
 for i, tok_as_str in enumerate(list_tokens):
     CIRCUIT['S'+str(i)] = lst
     SEQ_POS_TO_KEEP['S'+str(i)] = 'S'+str(i)
-    if i == 5:
+    if i == 7:
         SEQ_POS_TO_KEEP['S'+str(i)] = 'end'
 # for i in range(1, 4):
 #     CIRCUIT['S'+str(i)] = lst
@@ -464,11 +447,11 @@ def ablate_head_from_full(
     CIRCUIT = {}
     SEQ_POS_TO_KEEP = {}
 
-    list_tokens = tokenizer.tokenize('2 4 6 ')
+    list_tokens = tokenizer.tokenize('1 2 3 4')
     for i, tok_as_str in enumerate(list_tokens):
         CIRCUIT['S'+str(i)] = lst
         SEQ_POS_TO_KEEP['S'+str(i)] = 'S'+str(i)
-        if i == 5:
+        if i == 7:
             SEQ_POS_TO_KEEP['S'+str(i)] = 'end'
 
     model.reset_hooks(including_permanent=True)  #must do this after running with mean ablation hook
@@ -498,7 +481,7 @@ for lh in to_loop:
     lh_scores[lh] = new_score
 
 
-# In[40]:
+# In[ ]:
 
 
 # Sort the dictionary by values in descending order
@@ -543,10 +526,40 @@ if save_files:
 scores = list(lh_scores_drop.values())
 mean_score = statistics.mean(scores)
 print("Mean of the scores:", mean_score)
+
 if save_files:
     with open('numerals_lh_scores.pkl', 'wb') as file:
         pickle.dump(lh_scores, file)
         files.download('numerals_lh_scores.pkl')
+
+
+# ## plot heatmap
+
+# In[ ]:
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+
+# Convert dictionary to a DataFrame
+data_list = [(key[0], key[1], value) for key, value in lh_scores.items()]
+df = pd.DataFrame(data_list, columns=['Layer', 'Head', 'Value'])
+
+# Create a pivot table
+pivot_table = df.pivot(index='Layer', columns='Head', values='Value').fillna(0)
+
+# Plot the heatmap
+plt.figure(figsize=(10, 8))
+heatmap = sns.heatmap(pivot_table, cmap='coolwarm', center=0, annot=False, cbar=True)
+plt.xlabel('Head')
+plt.ylabel('Layer')
+plt.title('Heatmap of (Layer, Head): Value')
+
+# Rotate y-axis numbers to horizontal
+heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=0)
+
+plt.show()
 
 
 # # Find Impt MLPs from Full
